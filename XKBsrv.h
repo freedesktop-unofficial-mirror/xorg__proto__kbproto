@@ -231,6 +231,38 @@ typedef struct	_XkbSrvLedInfo {
  */
 #define	_XkbStateNotifyInProgress	(1<<0)
 
+typedef struct 
+{
+    ProcessInputProc processInputProc;
+    ProcessInputProc realInputProc;
+    DeviceUnwrapProc unwrapProc;
+} xkbDeviceInfoRec, *xkbDeviceInfoPtr;
+
+#define WRAP_PROCESS_INPUT_PROC(device, oldprocs, proc, unwrapproc) \
+        device->public.processInputProc = proc; \
+        oldprocs->processInputProc = \
+	oldprocs->realInputProc = device->public.realInputProc; \
+	device->public.realInputProc = proc; \
+	oldprocs->unwrapProc = device->unwrapProc; \
+        device->unwrapProc = unwrapproc;
+
+#define COND_WRAP_PROCESS_INPUT_PROC(device, oldprocs, proc, unwrapproc) \
+        if (device->public.processInputProc == device->public.realInputProc)\
+            device->public.processInputProc = proc; \
+        oldprocs->processInputProc = \
+	oldprocs->realInputProc = device->public.realInputProc; \
+	device->public.realInputProc = proc; \
+	oldprocs->unwrapProc = device->unwrapProc; \
+        device->unwrapProc = unwrapproc;
+
+#define UNWRAP_PROCESS_INPUT_PROC(device, oldprocs) \
+        device->public.processInputProc = oldprocs->processInputProc; \
+	device->public.realInputProc = oldprocs->realInputProc; \
+        device->unwrapProc = oldprocs->unwrapProc;
+
+#define XKBDEVICEINFO(dev) ((xkbDeviceInfoPtr) (dev)->devPrivates[xkbDevicePrivateIndex].ptr)
+
+
 /***====================================================================***/
 
 #define XkbAX_KRGMask	 (XkbSlowKeysMask|XkbBounceKeysMask)
@@ -257,6 +289,8 @@ extern pointer	XkbLastRepeatEvent;
 
 extern CARD32	xkbDebugFlags;
 extern CARD32	xkbDebugCtrls;
+extern int	xkbDevicePrivateIndex;
+
 
 #define	_XkbAlloc(s)		xalloc((s))
 #define	_XkbCalloc(n,s)		Xcalloc((n)*(s))
@@ -730,6 +764,12 @@ extern void XkbHandleActions(
     int 			/* count */
 );
 
+extern void xkbUnwrapProc(DeviceIntPtr device, /* device */
+			  DeviceHandleProc proc, /* unwrap proc */
+			  pointer data /* data */
+    );
+
+
 extern Bool XkbEnableDisableControls(
     XkbSrvInfoPtr	/* xkbi */,
     unsigned long	/* change */,
@@ -996,6 +1036,8 @@ extern Status XkbInitCanonicalKeyTypes(
 	unsigned int		/* which */,
 	int			/* keypadVMod */
 );
+
+extern void	XkbSetExtension(DeviceIntPtr device, ProcessInputProc proc);
 
 extern int XkbKeyTypesForCoreSymbols(
 	XkbDescPtr		/* xkb */,
