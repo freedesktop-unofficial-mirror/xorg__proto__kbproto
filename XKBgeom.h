@@ -610,15 +610,6 @@ XkbSetGeometry(
 	XkbGeometryPtr		/* geom */
 );
 
-extern	Status
-XkbSetGeometry(
-#if NeedFunctionPrototypes
-	Display *		/* dpy */,
-	unsigned		/* deviceSpec */,
-	XkbGeometryPtr		/* geom */
-#endif
-);
-
 extern	Bool
 XkbComputeShapeTop(
 	XkbShapePtr		/* shape */,
